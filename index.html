@@ -6,52 +6,35 @@
     <title>Rwanda Car Import Tax Calculator</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Choices.js CSS -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/choices.js/public/assets/styles/choices.min.css"/>
     <style>
-        body { font-family: 'Inter', sans-serif; }
+        body {
+            font-family: 'Inter', sans-serif;
+        }
         .loader {
             border-top-color: #3498db;
+            -webkit-animation: spin 1s linear infinite;
             animation: spin 1s linear infinite;
+        }
+        @-webkit-keyframes spin {
+            0% { -webkit-transform: rotate(0deg); }
+            100% { -webkit-transform: rotate(360deg); }
         }
         @keyframes spin {
             0% { transform: rotate(0deg); }
             100% { transform: rotate(360deg); }
         }
         .price-display {
-            background-color: #f3f4f6;
-            border: 1px solid #d1d5db;
-            border-radius: 0.5rem;
-            padding: 0.75rem;
-            font-weight: 600;
-            color: #1f2937;
+            background-color: #f3f4f6; /* bg-gray-200 */
+            border: 1px solid #d1d5db; /* border-gray-300 */
+            border-radius: 0.5rem; /* rounded-lg */
+            padding: 0.75rem; /* p-3 */
+            font-weight: 600; /* font-semibold */
+            color: #1f2937; /* text-gray-800 */
             text-align: center;
         }
-        .exchange-rate-display {
-            position: fixed;
-            top: 20px;
-            right: 20px;
-            background: #f0fdf4;
-            border: 1px solid #bbf7d0;
-            border-radius: 9999px;
-            padding: 6px 16px;
-            font-size: 14px;
-            font-weight: 500;
-            color: #166534;
-            display: flex;
-            align-items: center;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-            z-index: 1000;
-        }
-        .exchange-rate-loader {
-            display: inline-block;
-            width: 14px;
-            height: 14px;
-            border: 2px solid rgba(5, 150, 105, 0.3);
-            border-radius: 50%;
-            border-top-color: #166534;
-            animation: spin 1s linear infinite;
-            margin-right: 8px;
-        }
+        /* Style Choices.js to match Tailwind form elements */
         .choices__inner {
             background-color: white;
             border: 1px solid #d1d5db;
@@ -60,7 +43,7 @@
             min-height: auto;
         }
         .choices[data-type*="select-one"] .choices__inner {
-            padding-bottom: 0.45rem;
+             padding-bottom: 0.45rem;
         }
         .choices__input {
             background-color: white !important;
@@ -68,13 +51,25 @@
         .choices__list--dropdown .choices__item--selectable.is-highlighted {
             background-color: #3b82f6 !important;
         }
+        /* Floating Exchange Rate Style */
+        .floating-exchange-rate {
+            position: fixed;
+            top: 1rem;
+            right: 1rem;
+            z-index: 50;
+            background-color: #eff6ff; /* bg-blue-50 */
+            padding: 0.75rem; /* p-3 */
+            border-radius: 0.5rem; /* rounded-lg */
+            border: 1px solid #bfdbfe; /* border-blue-200 */
+            box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+        }
     </style>
 </head>
 <body class="bg-gray-100 text-gray-800">
-    <!-- Exchange Rate Display -->
-    <div class="exchange-rate-display" id="exchange-rate-display">
-        <span class="exchange-rate-loader" id="exchange-rate-loader"></span>
-        <span id="exchange-rate-text">Loading USD/RWF rate...</span>
+
+    <!-- Floating Exchange Rate Display -->
+    <div id="exchange-rate-display" class="floating-exchange-rate">
+        <p class="text-sm font-medium text-blue-700">Fetching Rate...</p>
     </div>
 
     <div class="container mx-auto p-4 md:p-8 max-w-4xl">
@@ -267,72 +262,19 @@
         </main>
         
         <footer class="text-center mt-8 text-sm text-gray-500">
-            <p>&copy; 2025 Rwanda Car Tax Estimator. All rights reserved.</p>
-            <p class="mt-1"><strong>Disclaimer:</strong> This is an estimation tool. Final taxes are determined by the Rwanda Revenue Authority (RRA).</p>
+            <p class="mt-1 text-blue-700"><strong>Disclaimer:</strong> This is an estimation tool. Final taxes are determined by the Rwanda Revenue Authority (RRA) or its authorized tax clearance agent.</p>
+            <p>&copy; 2025 1000 Hills On Wheels. All rights reserved.</p>
+            
         </footer>
+
     </div>
 
     <!-- Choices.js JS -->
     <script src="https://cdn.jsdelivr.net/npm/choices.js/public/assets/scripts/choices.min.js"></script>
     <script>
         document.addEventListener('DOMContentLoaded', function() {
-            // --- EXCHANGE RATE HANDLING ---
-            const exchangeRateDisplay = document.getElementById('exchange-rate-display');
-            const exchangeRateText = document.getElementById('exchange-rate-text');
-            const exchangeRateLoader = document.getElementById('exchange-rate-loader');
-            
-            let USD_RWF_EXCHANGE_RATE = 1443.37; // Default fallback rate
-            let exchangeRateLastUpdated = null;
-
-            async function fetchExchangeRate() {
-                try {
-                    exchangeRateText.textContent = 'Updating USD/RWF rate...';
-                    exchangeRateLoader.style.display = 'inline-block';
-                    
-                    // Using reliable currency API with fallback
-                    const response = await fetch('https://cdn.jsdelivr.net/gh/fawazahmed0/currency-api@1/latest/currencies/usd/rwf.json', {
-                        mode: 'cors',
-                        headers: {
-                            'Accept': 'application/json'
-                        }
-                    });
-                    
-                    if (!response.ok) throw new Error(`API Error: ${response.status}`);
-                    
-                    const data = await response.json();
-                    console.log('API Response:', data);
-                    
-                    const rate = data.rwf;
-                    
-                    if (rate && !isNaN(rate)) {
-                        USD_RWF_EXCHANGE_RATE = rate;
-                        exchangeRateLastUpdated = new Date();
-                        const formattedRate = USD_RWF_EXCHANGE_RATE.toFixed(2);
-                        const timeString = exchangeRateLastUpdated.toLocaleTimeString();
-                        exchangeRateText.textContent = `1 USD = ${formattedRate} RWF`;
-                        exchangeRateDisplay.title = `Last updated: ${timeString}`;
-                        exchangeRateDisplay.style.backgroundColor = '#f0fdf4';
-                        exchangeRateDisplay.style.color = '#166534';
-                    } else {
-                        throw new Error('Invalid rate data');
-                    }
-                } catch (error) {
-                    console.error('Failed to fetch exchange rate:', error);
-                    const formattedRate = USD_RWF_EXCHANGE_RATE.toFixed(2);
-                    exchangeRateText.textContent = `1 USD ≈ ${formattedRate} RWF (cached)`;
-                    exchangeRateDisplay.style.backgroundColor = '#fffbeb';
-                    exchangeRateDisplay.style.color = '#92400e';
-                } finally {
-                    exchangeRateLoader.style.display = 'none';
-                    // Update every 4 hours (reduced frequency)
-                    setTimeout(fetchExchangeRate, 4 * 60 * 60 * 1000);
-                }
-            }
-            
-            // Initial fetch
-            fetchExchangeRate();
-
             // --- GLOBAL VARIABLES ---
+            let USD_RWF_EXCHANGE_RATE = 1310; // Fallback rate
             const API_URL = 'http://localhost:3000';
             let valueAsNew = 0;
 
@@ -341,6 +283,7 @@
             const yearSelectEl = document.getElementById('manufacturing-year');
             const modelSelectEl = document.getElementById('car-model');
             const specSelectEl = document.getElementById('car-spec');
+            const exchangeRateDisplay = document.getElementById('exchange-rate-display');
             const rraPriceDisplay = document.getElementById('rra-price-display');
             const engineInput = document.getElementById('engine-capacity');
             const freightInput = document.getElementById('freight-cost');
@@ -363,6 +306,55 @@
             
             // --- DATA HANDLING AND UI POPULATION ---
 
+            /**
+             * Fetches and caches the USD to RWF exchange rate.
+             */
+            async function getExchangeRate() {
+                const cacheKey = 'exchangeRateCache';
+                const cachedData = JSON.parse(localStorage.getItem(cacheKey));
+                const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
+
+                if (cachedData && cachedData.date === today) {
+                    USD_RWF_EXCHANGE_RATE = cachedData.rate;
+                    updateExchangeRateDisplay(cachedData.rate, 'cached');
+                    return;
+                }
+
+                try {
+                    const response = await fetch('https://api.exchangerate-api.com/v4/latest/USD');
+                    if (!response.ok) throw new Error('Network response was not ok.');
+                    const data = await response.json();
+                    const rate = data.rates.RWF;
+                    
+                    if (rate) {
+                        USD_RWF_EXCHANGE_RATE = rate;
+                        localStorage.setItem(cacheKey, JSON.stringify({ rate: rate, date: today }));
+                        updateExchangeRateDisplay(rate, 'live');
+                    } else {
+                        throw new Error('RWF rate not found in API response.');
+                    }
+                } catch (error) {
+                    console.error("Failed to fetch live exchange rate:", error);
+                    if(cachedData) {
+                         USD_RWF_EXCHANGE_RATE = cachedData.rate;
+                         updateExchangeRateDisplay(cachedData.rate, 'fallback');
+                    } else {
+                         updateExchangeRateDisplay(USD_RWF_EXCHANGE_RATE, 'default');
+                    }
+                }
+            }
+            
+            function updateExchangeRateDisplay(rate, status) {
+                let statusText = '';
+                switch(status) {
+                    case 'live': statusText = '(Live)'; break;
+                    case 'cached': statusText = '(Cached Today)'; break;
+                    case 'fallback': statusText = '(Using Older Cache)'; break;
+                    case 'default': statusText = '(Using Default)'; break;
+                }
+                exchangeRateDisplay.innerHTML = `<p class="text-sm font-medium text-blue-700">1 USD = ${parseFloat(rate).toFixed(2)} RWF <span class="font-normal text-gray-500">${statusText}</span></p>`;
+            }
+
             async function fetchAndSetChoices(url, choicesInstance, prompt) {
                 try {
                     choicesInstance.disable();
@@ -371,7 +363,6 @@
                     const data = await response.json();
                     
                     const filteredData = data.filter(value => value !== null && value !== undefined && value.toString().trim() !== '');
-
                     const choicesData = filteredData.map(value => ({ value: value, label: value }));
                     
                     choicesInstance.clearStore();
@@ -397,9 +388,7 @@
             }
 
             async function initializeBrands() {
-                yearChoices.disable();
-                modelChoices.disable();
-                specChoices.disable();
+                yearChoices.disable(); modelChoices.disable(); specChoices.disable();
                 await fetchAndSetChoices(`${API_URL}/brands`, makerChoices, 'Select Maker');
             }
 
@@ -473,7 +462,7 @@
                 if (cc <= 1500) return 285000;
                 if (cc <= 3000) return 445000;
                 if (cc <= 4500) return 748000;
-                return 997000; // 4501 and above
+                return 997000;
             }
 
             function calculateTaxes() {
@@ -509,36 +498,26 @@
 
                     if (fuelType === 'Fuel') {
                         document.getElementById('withholding-tax-row').classList.add('hidden');
-                        customsDuty = cifValue * 0.25;
-                        customsRateText = `25%`;
-                        
+                        customsDuty = cifValue * 0.25; customsRateText = `25%`;
                         if (utilityType === 'Sedan' || utilityType === 'SUV') {
                             const exciseDutyRate = getFuelExciseDutyRate(engineCC);
                             exciseDuty = cifValue * exciseDutyRate;
                             exciseRateText = `${(exciseDutyRate * 100).toFixed(0)}% (by CC)`;
                         }
-                        
                         vat = (cifValue + customsDuty + exciseDuty + infrastructureLevy) * 0.18;
-
                     } else if (fuelType === 'Hybrid') {
                         document.getElementById('withholding-tax-row').classList.remove('hidden');
-                        customsDuty = 0; // Exempt
-                        
+                        customsDuty = 0;
                         if (utilityType === 'Sedan' || utilityType === 'SUV') {
                             const exciseDutyRate = getHybridExciseDutyRate(carAge);
                             exciseDuty = cifValue * exciseDutyRate;
                             exciseRateText = `${(exciseDutyRate * 100).toFixed(0)}% (by Age)`;
                         }
-                        
                         withholdingTax = cifValue * 0.05;
                         vat = (cifValue + customsDuty + exciseDuty + infrastructureLevy) * 0.18;
-
                     } else if (fuelType === 'Electric') {
                          document.getElementById('withholding-tax-row').classList.add('hidden');
-                         customsDuty = 0; 
-                         exciseDuty = 0; 
-                         vat = 0; 
-                         withholdingTax = 0;
+                         customsDuty = 0; exciseDuty = 0; vat = 0; withholdingTax = 0;
                     }
                     
                     const totalTaxUSD = customsDuty + exciseDuty + vat + withholdingTax + infrastructureLevy + registrationFeeUSD;
@@ -546,7 +525,6 @@
                     const totalLandedCostUSD = cifValue + totalTaxUSD;
                     const totalLandedCostRWF = totalLandedCostUSD * USD_RWF_EXCHANGE_RATE;
 
-                    // Display results
                     const brand = makerChoices.getValue(true);
                     const model = modelChoices.getValue(true);
                     const spec = specChoices.getValue(true);
@@ -582,24 +560,17 @@
             // --- EVENT LISTENERS ---
             makerSelectEl.addEventListener('change', (event) => {
                 const brand = event.detail.value;
-                yearChoices.clearStore(); yearChoices.disable();
-                modelChoices.clearStore(); modelChoices.disable();
-                specChoices.clearStore(); specChoices.disable();
+                yearChoices.clearStore(); yearChoices.disable(); modelChoices.clearStore(); modelChoices.disable(); specChoices.clearStore(); specChoices.disable();
                 updatePriceDisplay(0);
-                if (brand) {
-                    fetchAndSetChoices(`${API_URL}/years?brand=${encodeURIComponent(brand)}`, yearChoices, 'Select Year');
-                }
+                if (brand) fetchAndSetChoices(`${API_URL}/years?brand=${encodeURIComponent(brand)}`, yearChoices, 'Select Year');
             });
 
             yearSelectEl.addEventListener('change', (event) => {
                 const brand = makerChoices.getValue(true);
                 const year = event.detail.value;
-                modelChoices.clearStore(); modelChoices.disable();
-                specChoices.clearStore(); specChoices.disable();
+                modelChoices.clearStore(); modelChoices.disable(); specChoices.clearStore(); specChoices.disable();
                 updatePriceDisplay(0);
-                if (brand && year) {
-                    fetchAndSetChoices(`${API_URL}/models?brand=${encodeURIComponent(brand)}&year=${year}`, modelChoices, 'Select Model');
-                }
+                if (brand && year) fetchAndSetChoices(`${API_URL}/models?brand=${encodeURIComponent(brand)}&year=${year}`, modelChoices, 'Select Model');
             });
             
             modelSelectEl.addEventListener('change', (event) => {
@@ -608,9 +579,7 @@
                 const model = event.detail.value;
                 specChoices.clearStore(); specChoices.disable();
                 updatePriceDisplay(0);
-                if (brand && year && model) {
-                    fetchAndSetChoices(`${API_URL}/specs?brand=${encodeURIComponent(brand)}&year=${year}&model=${encodeURIComponent(model)}`, specChoices, 'Select Specs');
-                }
+                if (brand && year && model) fetchAndSetChoices(`${API_URL}/specs?brand=${encodeURIComponent(brand)}&year=${year}&model=${encodeURIComponent(model)}`, specChoices, 'Select Specs');
             });
 
             specSelectEl.addEventListener('change', async (event) => {
@@ -636,16 +605,14 @@
                 const isElectric = event.target.value === 'Electric';
                 engineInput.disabled = isElectric;
                 utilityTypeSelect.disabled = isElectric;
-                if (isElectric) {
-                    engineInput.value = '';
-                    utilityTypeSelect.value = '';
-                }
+                if (isElectric) { engineInput.value = ''; utilityTypeSelect.value = ''; }
             });
 
             calculateBtn.addEventListener('click', calculateTaxes);
             recalculateBtn.addEventListener('click', () => location.reload());
             
             // --- INITIALIZATION ---
+            getExchangeRate();
             initializeBrands();
         });
     </script>
