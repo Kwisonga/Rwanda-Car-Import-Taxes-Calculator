@@ -76,7 +76,7 @@ app.get('/models', (req, res) => {
                     car.BRAND?.trim() === brand.trim() && 
                     car.YEAR == year
                 )
-                .map(car => car['CAR MODEL']?.trim() || '')
+                .map(car => car['MARK']?.trim() || '')
                 .filter(Boolean)
         ].sort();
 
@@ -100,7 +100,7 @@ app.get('/specs', (req, res) => {
                 .filter(car => 
                     car.BRAND?.trim() === brand.trim() && 
                     car.YEAR == year && 
-                    car['CAR MODEL']?.trim() === model.trim()
+                    car['MARK']?.trim() === model.trim()
                 )
                 .map(car => car.SPEC?.trim() || '')
                 .filter(Boolean)
